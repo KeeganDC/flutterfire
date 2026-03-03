@@ -26,6 +26,57 @@ NSString *const kFLTFirebaseAnalyticsUserId = @"userId";
 
 NSString *const FLTFirebaseAnalyticsChannelName = @"plugins.flutter.io/firebase_analytics";
 
+@interface NSData (FLTAnalyticsHex)
++ (nullable instancetype)flt_dataWithHexString:(NSString *)hexString;
+@end
+
+@implementation NSData (FLTAnalyticsHex)
++ (nullable instancetype)flt_dataWithHexString:(NSString *)hexString {
+  if (hexString == nil) {
+    return nil;
+  }
+
+  NSUInteger length = [hexString length];
+  if (length % 2 != 0) {
+    return nil;
+  }
+
+  NSMutableData *data = [NSMutableData dataWithCapacity:length / 2];
+  for (NSUInteger i = 0; i < length; i += 2) {
+    unichar c1 = [hexString characterAtIndex:i];
+    unichar c2 = [hexString characterAtIndex:i + 1];
+
+    int v1 = 0;
+    int v2 = 0;
+
+    if (c1 >= '0' && c1 <= '9') {
+      v1 = (int)(c1 - '0');
+    } else if (c1 >= 'a' && c1 <= 'f') {
+      v1 = (int)(c1 - 'a' + 10);
+    } else if (c1 >= 'A' && c1 <= 'F') {
+      v1 = (int)(c1 - 'A' + 10);
+    } else {
+      return nil;
+    }
+
+    if (c2 >= '0' && c2 <= '9') {
+      v2 = (int)(c2 - '0');
+    } else if (c2 >= 'a' && c2 <= 'f') {
+      v2 = (int)(c2 - 'a' + 10);
+    } else if (c2 >= 'A' && c2 <= 'F') {
+      v2 = (int)(c2 - 'A' + 10);
+    } else {
+      return nil;
+    }
+
+    UInt8 byte = (UInt8)((v1 << 4) | v2);
+    [data appendBytes:&byte length:1];
+  }
+
+  return [data copy];
+}
+@end
+
 @implementation FLTFirebaseAnalyticsPlugin
 
 + (instancetype)sharedInstance {
@@ -200,11 +251,11 @@ NSString *const FLTFirebaseAnalyticsChannelName = @"plugins.flutter.io/firebase_
     [FIRAnalytics initiateOnDeviceConversionMeasurementWithPhoneNumber:phoneNumber];
   }
   if (![hashedEmailAddress isKindOfClass:[NSNull class]]) {
-    NSData *data = [hashedEmailAddress dataUsingEncoding:NSUTF8StringEncoding];
+    NSData *data = [NSData flt_dataWithHexString:hashedEmailAddress];
     [FIRAnalytics initiateOnDeviceConversionMeasurementWithHashedEmailAddress:data];
   }
   if (![hashedPhoneNumber isKindOfClass:[NSNull class]]) {
-    NSData *data = [hashedPhoneNumber dataUsingEncoding:NSUTF8StringEncoding];
+    NSData *data = [NSData flt_dataWithHexString:hashedPhoneNumber];
     [FIRAnalytics initiateOnDeviceConversionMeasurementWithHashedPhoneNumber:data];
   }
   result.success(nil);
